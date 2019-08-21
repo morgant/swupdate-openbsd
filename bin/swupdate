@@ -32,22 +32,24 @@
 tool="$(basename "$0")"
 verbose=false
 
-# parse arguments
-args=$(getopt vldi: $*)
-if [ $? -ne 0 ]; then
-  echo "Usage: ${tool} [-l | -i]" 
-  exit 2
-fi
+usage() {
+  echo "Usage: ${tool} [-v] [-l | -i]"
+}
 
-# require root
-if [ "$(whoami)" != "root" ]; then
-  echo "${tool}: need root privileges"
-  exit 1
+# parse arguments
+args=$(getopt vhldi: $*)
+if [ $? -ne 0 ]; then
+  usage
+  exit 2
 fi
 
 set -- $args
 while [ $# -ne 0 ]; do
   case "$1" in
+    "-h")
+      usage
+      exit
+      ;;
     "-l"|"-d"|"-i")
       flag="$1"
       ;;
@@ -58,14 +60,15 @@ while [ $# -ne 0 ]; do
       shift
       break
       ;;
-    "*")
-      echo "${tool}: ${1}: unknown option"
-      echo "Usage: ${tool} [-l | -i]"
-      exit 1
-      ;;
   esac
   shift
 done
+
+# require root
+if [ "$(whoami)" != "root" ]; then
+  echo "${tool}: need root privileges"
+  exit 1
+fi
 
 case "$flag" in
   "-l")
