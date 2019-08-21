@@ -1,0 +1,57 @@
+#!/bin/sh
+
+#
+# swupdate - check and perform OpenBSD software updates
+# 
+
+tool="$(basename "$0")"
+
+# parse arguments
+args=$(getopt ldi: $*)
+if [ $? -ne 0 ]; then
+  echo "Usage: ${tool} [-l | -i]" 
+  exit 2
+fi
+
+# require root
+if [ "$(whoami)" != "root" ]; then
+  echo "${tool}: need root privileges"
+  exit 1
+fi
+
+set -- $args
+while [ $# -ne 0 ]; do
+  case "$1" in
+    "-l"|"-d"|"-i")
+      flag="$1"
+      ;;
+    "--")
+      shift
+      break
+      ;;
+    "*")
+      echo "${tool}: ${1}: unknown option"
+      echo "Usage: ${tool} [-l | -i]"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+case "$flag" in
+  "-l")
+    # list pending updates
+    syspatch -c
+    fw_update -i
+    pkg_add -sxu
+    ;;
+  "-d")
+    # download, but don't install pending updates
+    fw_update -n
+    pkg_add -nxu
+    ;;
+  "-i")
+    # install pending updates   
+
+    ;;
+esac
