@@ -30,9 +30,10 @@
 # SOFTWARE.
 
 tool="$(basename "$0")"
+verbose=false
 
 # parse arguments
-args=$(getopt ldi: $*)
+args=$(getopt vldi: $*)
 if [ $? -ne 0 ]; then
   echo "Usage: ${tool} [-l | -i]" 
   exit 2
@@ -50,6 +51,9 @@ while [ $# -ne 0 ]; do
     "-l"|"-d"|"-i")
       flag="$1"
       ;;
+    "-v")
+      verbose=true
+      ;;
     "--")
       shift
       break
@@ -66,13 +70,18 @@ done
 case "$flag" in
   "-l")
     # list pending updates
+    if $verbose; then echo "Checking for system patches..."; fi
     syspatch -c
+    if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -i
+    if $verbose; then echo "Checking for updated packages..."; fi
     pkg_add -sxu
     ;;
   "-d")
     # download, but don't install pending updates
+    if $verbose; then echo "Downloading firmware updates..."; fi
     fw_update -n
+    if $verbose; then echo "Downloading package updates..."; fi
     pkg_add -nxu
     ;;
   "-i")
