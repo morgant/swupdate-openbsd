@@ -37,7 +37,7 @@ usage() {
 }
 
 # parse arguments
-args=$(getopt vhldi: $*)
+args=$(getopt vhldi $*)
 if [ $? -ne 0 ]; then
   usage
   exit 2
@@ -89,6 +89,9 @@ case "$flag" in
     ;;
   "-i")
     # install pending updates   
-
+    if $verbose; then echo "Installing firmware updates..."; fi
+    fw_update
+    if $verbose; then echo "Installing package updates..."; fi
+    pkg_add -xu
     ;;
 esac
