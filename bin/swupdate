@@ -89,6 +89,8 @@ case "$flag" in
     ;;
   "-i")
     # install pending updates   
+    if $verbose; then echo "Installing system patches..."; fi
+    syspatch
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
     if $verbose; then echo "Installing package updates..."; fi
