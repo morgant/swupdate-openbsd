@@ -6,10 +6,13 @@
 # CHANGE LOG:
 #
 # v0.1   - 2019-08-21 - Morgan Aldridge <morgant@makkintosshu.com>
+#                       Initial version.
+# v0.2   - 2020-12-21 - Morgan Aldridge
+#                       Prompt to reboot after install if kernel was changed.
 #
 # LICENSE:
 #
-# Copyright (c) 2019 Morgan Aldridge
+# Copyright (c) 2019-2020 Morgan Aldridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -90,10 +93,21 @@ case "$flag" in
   "-i")
     # install pending updates   
     if $verbose; then echo "Installing system patches..."; fi
-    syspatch
+    syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
     if $verbose; then echo "Installing package updates..."; fi
     pkg_add -xu
+    if $reboot && read now?'A reboot is necessary. Reboot now (y/n)? ' ; then
+      case "$now" in
+        Y|y)
+          echo "Rebooting..."
+          reboot
+          ;;
+        *)
+          echo "Please remember to reboot!"
+          ;;
+      esac
+    fi
     ;;
 esac
