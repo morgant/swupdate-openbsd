@@ -76,10 +76,10 @@ fi
 case "$flag" in
   "-l")
     # list pending updates
-    if $verbose; then echo "Checking for system patches..."; fi
-    syspatch -c
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -i
+    if $verbose; then echo "Checking for system patches..."; fi
+    syspatch -c
     if $verbose; then echo "Checking for updated packages..."; fi
     pkg_add -sxu
     ;;
@@ -92,10 +92,10 @@ case "$flag" in
     ;;
   "-i")
     # install pending updates   
-    if $verbose; then echo "Installing system patches..."; fi
-    syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
+    if $verbose; then echo "Installing system patches..."; fi
+    syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
     if $verbose; then echo "Installing package updates..."; fi
     pkg_add -xu
     if $reboot && read now?'A reboot is necessary. Reboot now (y/n)? ' ; then
