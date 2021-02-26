@@ -10,7 +10,8 @@
 # v0.2   - 2020-12-21 - Morgan Aldridge
 #                       Prompt to reboot after install if kernel was changed.
 # v0.3   - 2021-02-26 - Morgan Aldridge
-#                       Install firmware updates prior to syspatches.
+#                       Install firmware updates prior to syspatches. Safer
+#                       check for root.
 #
 # LICENSE:
 #
@@ -70,7 +71,7 @@ while [ $# -ne 0 ]; do
 done
 
 # require root
-if [ "$(whoami)" != "root" ]; then
+if [ $(id -u) -ne 0 ]; then
   echo "${tool}: need root privileges"
   exit 1
 fi
