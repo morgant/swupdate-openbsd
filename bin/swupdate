@@ -12,6 +12,8 @@
 # v0.3   - 2021-02-26 - Morgan Aldridge
 #                       Install firmware updates prior to syspatches. Safer
 #                       check for root.
+# v0.4   - 2021-05-27 - Morgan Aldridge
+#                       Don't try to list/install syspatches on snapshots.
 #
 # LICENSE:
 #
@@ -40,6 +42,14 @@ verbose=false
 
 usage() {
   echo "Usage: ${tool} [-v] [-l | -i]"
+}
+
+is_snapshot() {
+  if [ -z "$(sysctl -n kern.version | sed 's/^OpenBSD \([1-9][0-9]*\.[0-9]\)\([^ ]*\).*/\2/;q')" ] ; then
+    false
+  else
+    true
+  fi
 }
 
 # parse arguments
@@ -81,8 +91,10 @@ case "$flag" in
     # list pending updates
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -i
-    if $verbose; then echo "Checking for system patches..."; fi
-    syspatch -c
+    if ! is_snapshot ; then
+      if $verbose; then echo "Checking for system patches..."; fi
+      syspatch -c
+    fi
     if $verbose; then echo "Checking for updated packages..."; fi
     pkg_add -sxu
     ;;
@@ -97,8 +109,10 @@ case "$flag" in
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
-    if $verbose; then echo "Installing system patches..."; fi
-    syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
+    if ! is_snapshot ; then
+      if $verbose; then echo "Installing system patches..."; fi
+      syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
+    fi
     if $verbose; then echo "Installing package updates..."; fi
     pkg_add -xu
     if $reboot && read now?'A reboot is necessary. Reboot now (y/n)? ' ; then
