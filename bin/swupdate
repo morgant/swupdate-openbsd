@@ -41,7 +41,7 @@ tool="$(basename "$0")"
 verbose=false
 
 usage() {
-  echo "Usage: ${tool} [-v] [-l | -i]"
+  echo "Usage: ${tool} [-v] [-l | -d | -i]"
 }
 
 is_snapshot() {
