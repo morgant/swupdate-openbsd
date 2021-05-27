@@ -14,6 +14,7 @@
 #                       check for root.
 # v0.4   - 2021-05-27 - Morgan Aldridge
 #                       Don't try to list/install syspatches on snapshots.
+#                       Use checkrestart after install, if available.
 #
 # LICENSE:
 #
@@ -115,6 +116,10 @@ case "$flag" in
     fi
     if $verbose; then echo "Installing package updates..."; fi
     pkg_add -xu
+    if which checkrestart > /dev/null 2>&1 ; then
+      if $verbose; then echo "Checking for processes needing a restart..."; fi
+      checkrestart
+    fi
     if $reboot && read now?'A reboot is necessary. Reboot now (y/n)? ' ; then
       case "$now" in
         Y|y)
