@@ -17,6 +17,9 @@
 #                       Use checkrestart after install, if available.
 # v0.5   - 2023-03-29 - Morgan Aldridge
 #                       Remove unused package dependencies after install.
+#                       Retry installing patches if none installed, in case
+#                       syspatch was updated. Only prompt to restart if
+#                       kernel was changed during syspatch execution time.
 #
 # LICENSE:
 #
@@ -53,6 +56,20 @@ is_snapshot() {
   else
     true
   fi
+}
+
+install_patches() {
+  result=0
+  start_time=$(date +%s)
+
+  if $verbose; then echo "Installing system patches..."; fi
+  syspatch || result=$?
+  if [ $result -eq 2 ]; then
+    if $verbose; then echo "Installing system patches (retrying)..."; fi
+    syspatch; result=$?
+  fi
+  elapsed=$(( ( $(date +%s) - start_time ) / 60 ))
+  [ $result -eq 0 ] && find /bsd -mmin "-${elapsed}" > /dev/null && reboot=true || reboot=false
 }
 
 # parse arguments
@@ -113,8 +130,7 @@ case "$flag" in
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
     if ! is_snapshot ; then
-      if $verbose; then echo "Installing system patches..."; fi
-      syspatch && find /bsd -mmin -15 > /dev/null && reboot=true || reboot=false
+      install_patches
     fi
     if $verbose; then echo "Installing package updates..."; fi
     pkg_add -xu
