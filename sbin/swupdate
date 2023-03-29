@@ -20,6 +20,8 @@
 #                       Retry installing patches if none installed, in case
 #                       syspatch was updated. Only prompt to restart if
 #                       kernel was changed during syspatch execution time.
+#                       Fix error from fw_update when listing pending
+#                       updates.
 #
 # LICENSE:
 #
@@ -110,7 +112,7 @@ case "$flag" in
   "-l")
     # list pending updates
     if $verbose; then echo "Checking for firmware updates..."; fi
-    fw_update -i
+    fw_update -n
     if ! is_snapshot ; then
       if $verbose; then echo "Checking for system patches..."; fi
       syspatch -c
