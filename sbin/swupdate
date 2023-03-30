@@ -24,7 +24,8 @@
 #                       updates.
 # v0.6   - 2023-03-30 - Morgan Aldridge
 #                       Round elapsed minutes since syspatch execution began
-#                       up to nearest minute.
+#                       up to nearest minute. Only re-execute syspatch if it
+#                       updated itself during its execution time.
 #
 # LICENSE:
 #
@@ -63,10 +64,13 @@ is_snapshot() {
   fi
 }
 
+# prints the current number of seconds since epoch
 now() {
   date +%s
 }
 
+# prints the number of whole minutes elapsed since the start time ($1 in seconds
+# since epoch), rounded up to the nearest minute
 elapsed_minutes() {
   _seconds=$(($(now) - $1))
   _minutes=$((_seconds / 60))
@@ -74,17 +78,25 @@ elapsed_minutes() {
   echo $_minutes
 }
 
+# exits with status 0 if specified file ($1) has been modified more recently than
+# the specified seconds since epoch ($2), otherwise exits with status 1
+modified_since() {
+  [ $(find "$1" -type f -mmin "-$(elapsed_minutes $2)" >/dev/null | wc -l) -eq 1 ]
+}
+
+# installs system patches
 install_patches() {
   _result=0
   _start=$(now)
 
   if $verbose; then echo "Installing system patches..."; fi
   syspatch || _result=$?
-  if [ $_result -eq 2 ]; then
-    if $verbose; then echo "Installing system patches (retrying)..."; fi
+  if [ $_result -eq 2 ] && modified_since $(which syspatch) $_start; then
+    if $verbose; then echo "Installing system patches (syspatch updated itself)..."; fi
+    _start=$(now)
     syspatch; _result=$?
   fi
-  [ $_result -eq 0 ] && find /bsd -mmin "-$(elapsed_minutes $_start)" > /dev/null && reboot=true || reboot=false
+  [ $_result -eq 0 ] && modified_since /bsd $_start && reboot=true || reboot=false
 }
 
 # parse arguments
