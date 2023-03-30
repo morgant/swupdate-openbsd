@@ -22,6 +22,9 @@
 #                       kernel was changed during syspatch execution time.
 #                       Fix error from fw_update when listing pending
 #                       updates.
+# v0.6   - 2023-03-30 - Morgan Aldridge
+#                       Round elapsed minutes since syspatch execution began
+#                       up to nearest minute.
 #
 # LICENSE:
 #
@@ -60,18 +63,28 @@ is_snapshot() {
   fi
 }
 
+now() {
+  date +%s
+}
+
+elapsed_minutes() {
+  _seconds=$(($(now) - $1))
+  _minutes=$((_seconds / 60))
+  [ $((_seconds % 60)) -gt 0 ] && _minutes=$((_minutes + 1))
+  echo $_minutes
+}
+
 install_patches() {
-  result=0
-  start_time=$(date +%s)
+  _result=0
+  _start=$(now)
 
   if $verbose; then echo "Installing system patches..."; fi
-  syspatch || result=$?
-  if [ $result -eq 2 ]; then
+  syspatch || _result=$?
+  if [ $_result -eq 2 ]; then
     if $verbose; then echo "Installing system patches (retrying)..."; fi
-    syspatch; result=$?
+    syspatch; _result=$?
   fi
-  elapsed=$(( ( $(date +%s) - start_time ) / 60 ))
-  [ $result -eq 0 ] && find /bsd -mmin "-${elapsed}" > /dev/null && reboot=true || reboot=false
+  [ $_result -eq 0 ] && find /bsd -mmin "-$(elapsed_minutes $_start)" > /dev/null && reboot=true || reboot=false
 }
 
 # parse arguments
