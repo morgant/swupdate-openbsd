@@ -178,7 +178,7 @@ case "$flag" in
     if $verbose; then echo "Downloading firmware updates..."; fi
     fw_update -n
     if $verbose; then echo "Downloading package updates..."; fi
-    if is_snapshot || is_post_beta_pre_relase; then
+    if is_snapshot || is_post_beta_pre_release; then
       pkg_add -nxu -Dsnap
     else
       pkg_add -nxu
