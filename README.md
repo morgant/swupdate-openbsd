@@ -15,11 +15,12 @@ A simple utility to roll the various software update related utilities in [OpenB
 
 * List, download, or install pending updates for firmware, system patches, and packages
 * Works on -release, -stable, or -current
+* Automatically uses snapshots when running a post-beta/pre-release kernel
 * Upon installation:
+  * Installs additional system patches when `syspatch` has updated itself
+  * Uninstalls any unused package dependencies
   * Checks for any running processes that might have had their binaries updated, if `checkrestart` is installed
-  * Prompt to reboot if kernel was updated by `syspatch`
-  * Checks for further system patches when `syspatch` has updated itself
-  * Deletes any unused package dependencies
+  * Prompts to reboot if kernel was updated by `syspatch`
 
 ## USAGE
 
