@@ -22,10 +22,12 @@
 #                       kernel was changed during syspatch execution time.
 #                       Fix error from fw_update when listing pending
 #                       updates.
-# v0.6   - 2023-03-30 - Morgan Aldridge
+# v0.6   - 2023-03-31 - Morgan Aldridge
 #                       Round elapsed minutes since syspatch execution began
 #                       up to nearest minute. Only re-execute syspatch if it
-#                       updated itself during its execution time.
+#                       updated itself during its execution time. Detects
+#                       when kernel is in post-beta & pre-release window and
+#                       appropriately uses snapshots.
 #
 # LICENSE:
 #
@@ -64,13 +66,38 @@ is_snapshot() {
   fi
 }
 
+# print the last valid URI from /etc/installurl, otherwise the default OpenBSD
+# mirror URL
+installurl() {
+  _mirror=""
+  while read _line; do
+    _line="${_line%%#*}"
+    [ -n "$_line" ] && echo "$_line" | grep "(file|ftp|http|https)://*" >/dev/null && _mirror="$_line"
+  done </etc/installurl
+  [ -z "$_mirror" ] && _mirror="https://cdn.openbsd.org/pub/OpenBSD"
+  echo "$_mirror"
+}
+
+# exits with status 0 if the kernel version is in the small window of time
+# post-beta and pre-release, otherwise exits with status 1
+is_post_beta_pre_release() {
+  _installurl="$(installurl)"
+  _installurl="${_installurl%/}"
+  _kern_version="$(sysctl -n kern.version | sed 's/^OpenBSD \([1-9][0-9]*\.[0-9]\)\([^ ]*\).*/\1/;q')"
+
+  # since the kernel version directory, including the packages subdirectory
+  # are created during this window of time, the easiest solution I have is
+  # to check for the the SHA256.sig file's existence
+  ! ftp -V -o - "${_installurl}/${_kern_version}/SHA256.sig" >/dev/null 2>&1
+}
+
 # prints the current number of seconds since epoch
 now() {
   date +%s
 }
 
-# prints the number of whole minutes elapsed since the start time ($1 in seconds
-# since epoch), rounded up to the nearest minute
+# prints the number of whole minutes elapsed since the specified start time ($1;
+# in seconds since epoch), rounded up to the nearest minute
 elapsed_minutes() {
   _seconds=$(($(now) - $1))
   _minutes=$((_seconds / 60))
@@ -138,7 +165,7 @@ case "$flag" in
     # list pending updates
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -n
-    if ! is_snapshot ; then
+    if ! is_snapshot && ! is_post_beta_pre_release; then
       if $verbose; then echo "Checking for system patches..."; fi
       syspatch -c
     fi
@@ -150,17 +177,25 @@ case "$flag" in
     if $verbose; then echo "Downloading firmware updates..."; fi
     fw_update -n
     if $verbose; then echo "Downloading package updates..."; fi
-    pkg_add -nxu
+    if is_snapshot || is_post_beta_pre_relase; then
+      pkg_add -nxu -Dsnap
+    else
+      pkg_add -nxu
+    fi
     ;;
   "-i")
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
-    if ! is_snapshot ; then
+    if ! is_snapshot && ! is_post_beta_pre_release; then
       install_patches
     fi
     if $verbose; then echo "Installing package updates..."; fi
-    pkg_add -xu
+    if is_snapshot || is_post_beta_pre_release; then
+      pkg_add -xu -Dsnap
+    else
+      pkg_add -xu
+    fi
     if $verbose; then echo "Uninstalling unused package dependencies..."; fi
     pkg_delete -xa
     if which checkrestart > /dev/null 2>&1 ; then
