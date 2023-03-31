@@ -53,6 +53,7 @@
 
 tool="$(basename "$0")"
 verbose=false
+reboot=false
 
 usage() {
   echo "Usage: ${tool} [-v] [-l | -d | -i]"
@@ -123,7 +124,7 @@ install_patches() {
     _start=$(now)
     syspatch; _result=$?
   fi
-  [ $_result -eq 0 ] && modified_since /bsd $_start && reboot=true || reboot=false
+  [ $_result -eq 0 ] && modified_since /bsd $_start && reboot=true
 }
 
 # parse arguments
