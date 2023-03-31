@@ -8,26 +8,31 @@
 # v0.1   - 2019-08-21 - Morgan Aldridge <morgant@makkintosshu.com>
 #                       Initial version.
 # v0.2   - 2020-12-21 - Morgan Aldridge
-#                       Prompt to reboot after install if kernel was changed.
+#                       Prompt to reboot after install if kernel was changed
+#                       by syspatch(8).
 # v0.3   - 2021-02-26 - Morgan Aldridge
 #                       Install firmware updates prior to syspatches. Safer
 #                       check for root.
 # v0.4   - 2021-05-27 - Morgan Aldridge
 #                       Don't try to list/install syspatches on snapshots.
-#                       Use checkrestart after install, if available.
+#                       Use checkrestart(8) after install, if available.
 # v0.5   - 2023-03-29 - Morgan Aldridge
 #                       Remove unused package dependencies after install.
 #                       Retry installing patches if none installed, in case
-#                       syspatch was updated. Only prompt to restart if
-#                       kernel was changed during syspatch execution time.
-#                       Fix error from fw_update when listing pending
+#                       syspatch(8) was updated. Only prompt to restart if
+#                       kernel was changed during syspatch(8) execution time.
+#                       Fix error from fw_update(8) when listing pending
 #                       updates.
 # v0.6   - 2023-03-31 - Morgan Aldridge
-#                       Round elapsed minutes since syspatch execution began
-#                       up to nearest minute. Only re-execute syspatch if it
+#                       Round elapsed minutes since syspatch(8) execution began
+#                       up to nearest minute. Only re-execute syspatch(8) if it
 #                       updated itself during its execution time. Detects
 #                       when kernel is in post-beta & pre-release window and
 #                       appropriately uses snapshots.
+# v0.6.1 - 2023-03-31 - Morgan Aldridge
+#                       Drop privileges before executing ftp(1). Verbose
+#                       output now notes when syspatch(8) is skipped due to
+#                       running a snapshot.
 #
 # LICENSE:
 #
@@ -57,6 +62,11 @@ reboot=false
 
 usage() {
   echo "Usage: ${tool} [-v] [-l | -d | -i]"
+}
+
+# drop root privileges before executing ftp(1)
+unpriv_ftp() {
+  eval su -s /bin/sh _pkgfetch -c "'ftp $@'"
 }
 
 is_snapshot() {
@@ -89,7 +99,7 @@ is_post_beta_pre_release() {
   # since the kernel version directory, including the packages subdirectory
   # are created during this window of time, the easiest solution I have is
   # to check for the the SHA256.sig file's existence
-  ! ftp -V -o - "${_installurl}/${_kern_version}/SHA256.sig" >/dev/null 2>&1
+  ! unpriv_ftp -V -o - "${_installurl}/${_kern_version}/SHA256.sig" >/dev/null 2>&1
 }
 
 # prints the current number of seconds since epoch
@@ -116,6 +126,11 @@ modified_since() {
 install_patches() {
   _result=0
   _start=$(now)
+
+  if is_snapshot || is_post_beta_pre_release; then
+    if $verbose; then echo "Skipping installing system patches (running snapshot)."; fi
+    return 0
+  fi
 
   if $verbose; then echo "Installing system patches..."; fi
   syspatch || _result=$?
@@ -166,7 +181,9 @@ case "$flag" in
     # list pending updates
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -n
-    if ! is_snapshot && ! is_post_beta_pre_release; then
+    if is_snapshot || is_post_beta_pre_release; then
+      if $verbose; then echo "Skipping checking for system patches (running snapshot)."; fi
+    else
       if $verbose; then echo "Checking for system patches..."; fi
       syspatch -c
     fi
@@ -188,9 +205,7 @@ case "$flag" in
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
-    if ! is_snapshot && ! is_post_beta_pre_release; then
-      install_patches
-    fi
+    install_patches
     if $verbose; then echo "Installing package updates..."; fi
     if is_snapshot || is_post_beta_pre_release; then
       pkg_add -xu -Dsnap
