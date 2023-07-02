@@ -177,11 +177,28 @@ install_patches() {
 # exits with status 0 if sysupgrade and a newer release are available, otherwise
 # exits with status 1
 check_for_sysupgrade() {
+  _version="$(kern_version)"
   if $verbose; then echo "Checking for system upgrades..."; fi
   if which sysupgrade >/dev/null 2>&1 && ! is_newest_release; then
-    echo "A newer OpenBSD $(next_kern_version) release is available to install via sysupgrade!"
+    _next_version="$(next_kern_version)"
+    _next_filename="$(next_kern_version | sed 's/\.//;q')"
+    cat <<EOM
+A newer OpenBSD ${_next_version} release is available to install via
+sysupgrade(8).
+
+See <https://www.openbsd.org/${_next_filename}.html> for details.
+
+IMPORTANT: Please review the following detailed release notes,
+errata, and upgrade guide BEFORE PROCEEDING for any changes
+between ${_version} and ${_next_version} which might impact your software
+or configuration:
+
+* <https://www.openbsd.org/plus${_next_filename}.html>
+* <https://www.openbsd.org/errata${_next_filename}.html>
+* <https://www.openbsd.org/faq/upgrade${_next_filename}.html>
+EOM
   else
-    if $verbose; then echo "OpenBSD $(kern_version) is the newest release available."; fi
+    if $verbose; then echo "OpenBSD ${_version} is the newest release available."; fi
     return 1
   fi
 }
