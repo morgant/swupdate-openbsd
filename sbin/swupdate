@@ -33,6 +33,8 @@
 #                       Drop privileges before executing ftp(1). Verbose
 #                       output now notes when syspatch(8) is skipped due to
 #                       running a snapshot.
+# v0.7   - 2023-07-01 - Morgan Aldridge
+#                       
 #
 # LICENSE:
 #
@@ -89,17 +91,46 @@ installurl() {
   echo "$_mirror"
 }
 
+# print the kernel version
+kern_version() {
+  sysctl -n kern.version | sed 's/^OpenBSD \([1-9][0-9]*\.[0-9]\)\([^ ]*\).*/\1/;q'
+}
+
+# print the kernel's major version
+next_kern_version() {
+  _version="$(kern_version)"
+  _major="$(echo "$_version" | cut -d . -f 1)"
+  _minor="$(echo "$_version" | cut -d . -f 2)"
+  _minor=$((_minor + 1))
+  [ $_minor -gt 9 ] && _minor=0 && _major=$((_major + 1))
+  echo "${_major}.${_minor}"
+}
+
 # exits with status 0 if the kernel version is in the small window of time
 # post-beta and pre-release, otherwise exits with status 1
 is_post_beta_pre_release() {
   _installurl="$(installurl)"
   _installurl="${_installurl%/}"
-  _kern_version="$(sysctl -n kern.version | sed 's/^OpenBSD \([1-9][0-9]*\.[0-9]\)\([^ ]*\).*/\1/;q')"
 
   # since the kernel version directory, including the packages subdirectory
   # are created during this window of time, the easiest solution I have is
   # to check for the the SHA256.sig file's existence
-  ! unpriv_ftp -V -o - "${_installurl}/${_kern_version}/SHA256.sig" >/dev/null 2>&1
+  ! unpriv_ftp -V -o - "${_installurl}/$(kern_version)/SHA256.sig" >/dev/null 2>&1
+}
+
+# exits with status 0 if no newer kernel version is available, otherwise exits
+# with status 1
+is_newest_release() {
+  _installurl="$(installurl)"
+  _installurl="${_installurl%/}"
+  _arch="$(sysctl -n hw.machine)"
+  _next_kern="$(next_kern_version)"
+
+  # check for the kernel version directory, architecture subdirectory, plus
+  # SHA256.sig and kernel files' existence
+  ! unpriv_ftp -V -o - "${_installurl}/${_next_kern}/${_arch}/SHA256.sig" >/dev/null 2>&1 \
+    && ! unpriv_ftp -V -o - "${_installurl}/${_next_kern}/${_arch}/bsd" >/dev/null 2>&1 \
+    && ! unpriv_ftp -V -o - "${_installurl}/${_next_kern}/${_arch}/bsd.rd" >/dev/null 2>&1
 }
 
 # prints the current number of seconds since epoch
@@ -140,6 +171,18 @@ install_patches() {
     syspatch; _result=$?
   fi
   [ $_result -eq 0 ] && modified_since /bsd $_start && reboot=true
+}
+
+# exits with status 0 if sysupgrade and a newer release are available, otherwise
+# exits with status 1
+check_for_sysupgrade() {
+  if $verbose; then echo "Checking for system upgrades..."; fi
+  if which sysupgrade >/dev/null 2>&1 && ! is_newest_release; then
+    echo "A newer OpenBSD release $(next_kern_version) is available to install via sysupgrade!"
+  else
+    if $verbose; then echo "No newer OpenBSD release than $(kern_version) is available to install via sysupgrade."; fi
+    return 1
+  fi
 }
 
 # parse arguments
@@ -189,6 +232,7 @@ case "$flag" in
     fi
     if $verbose; then echo "Checking for updated packages..."; fi
     pkg_add -sxu
+    check_for_sysupgrade
     ;;
   "-d")
     # download, but don't install pending updates
@@ -199,6 +243,13 @@ case "$flag" in
       pkg_add -nxu -Dsnap
     else
       pkg_add -nxu
+    fi
+    if check_for_sysupgrade; then
+      if is_snapshot || is_post_beta_pre_release; then
+        sysupgrade -ns
+      else
+        sysupgrade -nr
+      fi
     fi
     ;;
   "-i")
@@ -226,6 +277,20 @@ case "$flag" in
           ;;
         *)
           echo "Please remember to reboot!"
+          ;;
+      esac
+    fi
+    if check_for_sysupgrade && read install?'Do you want to upgrade to OpenBSD $(next_kern_version) now (y/n)? '; then
+      case "$install" in
+        Y|y)
+          if is_snapshot || is_post_beta_pre_release; then
+            sysupgrade -ns
+          else
+            sysupgrade -nr
+          fi
+          ;;
+        *)
+          echo "Skipping upgrade to OpenBSD $(next_kern_version)."
           ;;
       esac
     fi
