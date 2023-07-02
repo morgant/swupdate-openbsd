@@ -284,9 +284,9 @@ case "$flag" in
       case "$install" in
         Y|y)
           if is_snapshot || is_post_beta_pre_release; then
-            sysupgrade -ns
+            sysupgrade -s
           else
-            sysupgrade -nr
+            sysupgrade -r
           fi
           ;;
         *)
