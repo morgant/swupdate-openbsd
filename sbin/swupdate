@@ -33,8 +33,9 @@
 #                       Drop privileges before executing ftp(1). Verbose
 #                       output now notes when syspatch(8) is skipped due to
 #                       running a snapshot.
-# v0.7   - 2023-07-01 - Morgan Aldridge
-#                       
+# v0.7   - 2023-07-02 - Morgan Aldridge
+#                       Detect when a newer release is available to install via
+#                       sysupgrade(8) and prompt to install.
 #
 # LICENSE:
 #
@@ -178,9 +179,9 @@ install_patches() {
 check_for_sysupgrade() {
   if $verbose; then echo "Checking for system upgrades..."; fi
   if which sysupgrade >/dev/null 2>&1 && ! is_newest_release; then
-    echo "A newer OpenBSD release $(next_kern_version) is available to install via sysupgrade!"
+    echo "A newer OpenBSD $(next_kern_version) release is available to install via sysupgrade!"
   else
-    if $verbose; then echo "No newer OpenBSD release than $(kern_version) is available to install via sysupgrade."; fi
+    if $verbose; then echo "OpenBSD $(kern_version) is the newest release available."; fi
     return 1
   fi
 }
@@ -280,7 +281,7 @@ case "$flag" in
           ;;
       esac
     fi
-    if check_for_sysupgrade && read install?'Do you want to upgrade to OpenBSD $(next_kern_version) now (y/n)? '; then
+    if check_for_sysupgrade && read install?"Do you want to upgrade to OpenBSD $(next_kern_version) now (y/n)? "; then
       case "$install" in
         Y|y)
           if is_snapshot || is_post_beta_pre_release; then
