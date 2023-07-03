@@ -36,6 +36,9 @@
 # v0.7   - 2023-07-02 - Morgan Aldridge
 #                       Detect when a newer release is available to install via
 #                       sysupgrade(8) and prompt to install.
+# v0.8   - 2023-07-03 - Morgan Aldridge
+#                       Fixed bug in dermining whether a file had been modified
+#                       during syspatch(8) execution.
 #
 # LICENSE:
 #
@@ -151,7 +154,7 @@ elapsed_minutes() {
 # exits with status 0 if specified file ($1) has been modified more recently than
 # the specified seconds since epoch ($2), otherwise exits with status 1
 modified_since() {
-  [ $(find "$1" -type f -mmin "-$(elapsed_minutes $2)" >/dev/null | wc -l) -eq 1 ]
+  [ "$(find "$1" -type f -mmin "-$(elapsed_minutes $2)" 2>/dev/null | wc -l)" -eq 1 ]
 }
 
 # installs system patches
