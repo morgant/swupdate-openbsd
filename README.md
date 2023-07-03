@@ -1,6 +1,8 @@
 # swupdate
 by Morgan Aldridge <morgant@makkintosshu.com>
 
+[![swupdate-openbsd on OpenHub](https://openhub.net/p/swupdate-openbsd/widgets/project_thin_badge.gif)](https://openhub.net/p/swupdate-openbsd)
+
 ## OVERVIEW
 
 A simple utility to roll the various software update related utilities in [OpenBSD](https://www.openbsd.org/) into a single command, a la macOS's (nee Mac OS X's) [`softwareupdate`](https://ss64.com/osx/softwareupdate.html), including:
