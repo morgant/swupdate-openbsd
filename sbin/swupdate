@@ -154,7 +154,7 @@ elapsed_minutes() {
 # exits with status 0 if specified file ($1) has been modified more recently than
 # the specified seconds since epoch ($2), otherwise exits with status 1
 modified_since() {
-  [ "$(find "$1" -type f -mmin "-$(elapsed_minutes $2)" 2>/dev/null | wc -l)" -eq 1 ]
+  [ "$(find "$1" -type f -mmin "-$(elapsed_minutes "$2")" 2>/dev/null | wc -l)" -eq 1 ]
 }
 
 # installs system patches
@@ -169,12 +169,12 @@ install_patches() {
 
   if $verbose; then echo "Installing system patches..."; fi
   syspatch || _result=$?
-  if [ $_result -eq 2 ] && modified_since $(which syspatch) $_start; then
+  if [ $_result -eq 2 ] && modified_since "$(which syspatch)" "$_start"; then
     if $verbose; then echo "Installing system patches (syspatch updated itself)..."; fi
     _start=$(now)
     syspatch; _result=$?
   fi
-  [ $_result -eq 0 ] && modified_since /bsd $_start && reboot=true
+  [ $_result -eq 0 ] && modified_since /bsd "$_start" && reboot=true
 }
 
 # exits with status 0 if sysupgrade and a newer release are available, otherwise
@@ -247,7 +247,7 @@ while [ $# -ne 0 ]; do
 done
 
 # require root
-if [ $(id -u) -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   echo "${tool}: need root privileges"
   exit 1
 fi
