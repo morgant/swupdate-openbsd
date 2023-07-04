@@ -72,6 +72,7 @@ usage() {
 
 # drop root privileges before executing ftp(1)
 unpriv_ftp() {
+  # shellcheck disable=SC2145,SC2294
   eval su -s /bin/sh _pkgfetch -c "'ftp $@'"
 }
 
