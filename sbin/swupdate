@@ -87,7 +87,7 @@ is_snapshot() {
 # mirror URL
 installurl() {
   _mirror=""
-  while read _line; do
+  while read -r _line; do
     _line="${_line%%#*}"
     [ -n "$_line" ] && echo "$_line" | grep "(file|ftp|http|https)://*" >/dev/null && _mirror="$_line"
   done </etc/installurl
@@ -302,8 +302,9 @@ case "$flag" in
       if $verbose; then echo "Checking for processes needing a restart..."; fi
       checkrestart
     fi
-    if $reboot && read now?'A reboot is necessary. Reboot now (y/n)? ' ; then
-      case "$now" in
+    _now=""
+    if $reboot && read -r _now?'A reboot is necessary. Reboot now (y/n)? ' ; then
+      case "$_now" in
         Y|y)
           echo "Rebooting..."
           reboot
@@ -313,8 +314,9 @@ case "$flag" in
           ;;
       esac
     fi
-    if check_for_sysupgrade && read install?"Do you want to upgrade to OpenBSD $(next_kern_version) now (y/n)? "; then
-      case "$install" in
+    _install=""
+    if check_for_sysupgrade && read -r _install?"Do you want to upgrade to OpenBSD $(next_kern_version) now (y/n)? "; then
+      case "$_install" in
         Y|y)
           if is_snapshot || is_post_beta_pre_release; then
             sysupgrade -s
