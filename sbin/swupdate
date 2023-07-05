@@ -220,32 +220,26 @@ EOM
 }
 
 # parse arguments
-args=$(getopt vhldi $*)
-if [ $? -ne 0 ]; then
-  usage
-  exit 2
-fi
-
-set -- $args
-while [ $# -ne 0 ]; do
-  case "$1" in
-    "-h")
+while getopts hvldi arg; do
+  case "$arg" in
+    h)
       usage
       exit
       ;;
-    "-l"|"-d"|"-i")
-      flag="$1"
+    l|d|i)
+      flag="$arg"
       ;;
-    "-v")
+    v)
       verbose=true
       ;;
-    "--")
-      shift
-      break
+    ?|*)
+      usage
+      exit 2
       ;;
   esac
-  shift
 done
+shift $((OPTIND - 1))
+[ $# -gt 0 ] && usage && exit 2
 
 # require root
 if [ "$(id -u)" -ne 0 ]; then
@@ -254,7 +248,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 case "$flag" in
-  "-l")
+  l)
     # list pending updates
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -n
@@ -268,7 +262,7 @@ case "$flag" in
     pkg_add -sxu
     check_for_sysupgrade
     ;;
-  "-d")
+  d)
     # download, but don't install pending updates
     if $verbose; then echo "Downloading firmware updates..."; fi
     fw_update -n
@@ -286,7 +280,7 @@ case "$flag" in
       fi
     fi
     ;;
-  "-i")
+  i)
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     fw_update
