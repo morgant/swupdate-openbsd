@@ -36,9 +36,9 @@
 # v0.7   - 2023-07-02 - Morgan Aldridge
 #                       Detect when a newer release is available to install via
 #                       sysupgrade(8) and prompt to install.
-# v0.8   - 2023-07-03 - Morgan Aldridge
+# v0.7.1 - 2023-07-04 - Morgan Aldridge
 #                       Fixed bug in dermining whether a file had been modified
-#                       during syspatch(8) execution.
+#                       during syspatch(8) execution. Code quality improvements.
 #
 # LICENSE:
 #
