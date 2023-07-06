@@ -14,6 +14,21 @@ A simple utility to roll the various software update related utilities in [OpenB
 * [sysupgrade(8)](https://man.openbsd.org/sysupgrade)
 * [checkrestart](https://github.com/semarie/checkrestart) (if installed)
 
+## Update-verse
+
+> One script for base developers providing system binary patches,
+> One for non-free driver firmware available from the Internet,
+> Three for third-party binary packages built via ports infrastructure,
+> One for upgrading to the next major OpenBSD release or snapshot,
+> One for the system administrator in their dark terminal
+> On the OpenBSD operating system where software needs an update.
+>   One script to run them all, One script to find them,
+>   One script to download them all, and from the shell install them
+> On the OpenBSD operating system where software needs an update.
+
+(My apologies for the blasphemous merging of Tolkien's ring verse
+with OpenBSD's manual pages for the various software updare scripts.)
+
 ## FEATURES
 
 * List, download, or install pending updates for firmware, system patches, packages, and major releases
