@@ -39,6 +39,10 @@
 # v0.7.1 - 2023-07-04 - Morgan Aldridge
 #                       Fixed bug in dermining whether a file had been modified
 #                       during syspatch(8) execution. Code quality improvements.
+# v0.8   - 2023-07-06 - Morgan Aldridge
+#                       Added option for specifying base directory for local
+#                       sets. Firmware updates are downloaded to local sets
+#                       and installed from local sets.
 #
 # LICENSE:
 #
@@ -65,9 +69,10 @@
 tool="$(basename "$0")"
 verbose=false
 reboot=false
+local_sets_dir="/home/_swupdate"
 
 usage() {
-  echo "Usage: ${tool} [-v] [-l | -d | -i]"
+  echo "Usage: ${tool} [-v] [-b path] [-l | -d | -i]"
 }
 
 # drop root privileges before executing ftp(1)
@@ -158,6 +163,17 @@ modified_since() {
   [ "$(find "$1" -type f -mmin "-$(elapsed_minutes "$2")" 2>/dev/null | wc -l)" -eq 1 ]
 }
 
+# downloads firmware
+download_firmware() {
+  install -d -o 0 -g 0 -m 0755 "${local_sets_dir}/firmware"
+  fw_update -p "${local_sets_dir}/firmware" -F
+}
+
+# installs firmware
+install_firmware() {
+  fw_update -p "${local_sets_dir}/firmware"
+}
+
 # installs system patches
 install_patches() {
   _result=0
@@ -220,11 +236,14 @@ EOM
 }
 
 # parse arguments
-while getopts hvldi arg; do
+while getopts hvb:ldi arg; do
   case "$arg" in
     h)
       usage
       exit
+      ;;
+    b)
+      local_sets_dir="${OPTARG#/}/_swupdate"
       ;;
     l|d|i)
       flag="$arg"
@@ -265,7 +284,7 @@ case "$flag" in
   d)
     # download, but don't install pending updates
     if $verbose; then echo "Downloading firmware updates..."; fi
-    fw_update -n
+    download_firmware
     if $verbose; then echo "Downloading package updates..."; fi
     if is_snapshot || is_post_beta_pre_release; then
       pkg_add -nxu -Dsnap
@@ -283,7 +302,7 @@ case "$flag" in
   i)
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
-    fw_update
+    download_firmware && install_firmware
     install_patches
     if $verbose; then echo "Installing package updates..."; fi
     if is_snapshot || is_post_beta_pre_release; then
