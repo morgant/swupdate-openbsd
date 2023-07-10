@@ -39,10 +39,10 @@
 # v0.7.1 - 2023-07-04 - Morgan Aldridge
 #                       Fixed bug in dermining whether a file had been modified
 #                       during syspatch(8) execution. Code quality improvements.
-# v0.8   - 2023-07-06 - Morgan Aldridge
+# v0.8   - 2023-07-09 - Morgan Aldridge
 #                       Added option for specifying base directory for local
-#                       sets. Firmware updates are downloaded to local sets
-#                       and installed from local sets.
+#                       sets. Firmware and packages are downloaded to and
+#                       installed from local sets.
 #
 # LICENSE:
 #
@@ -106,6 +106,10 @@ kern_version() {
   sysctl -n kern.version | sed 's/^OpenBSD \([1-9][0-9]*\.[0-9]\)\([^ ]*\).*/\1/;q'
 }
 
+kern_arch() {
+  sysctl -n hw.machine
+}
+
 # print the kernel's major version
 next_kern_version() {
   _version="$(kern_version)"
@@ -133,7 +137,7 @@ is_post_beta_pre_release() {
 is_newest_release() {
   _installurl="$(installurl)"
   _installurl="${_installurl%/}"
-  _arch="$(sysctl -n hw.machine)"
+  _arch="$(kern_arch)"
   _next_kern="$(next_kern_version)"
 
   # check for the kernel version directory, architecture subdirectory, plus
@@ -165,13 +169,35 @@ modified_since() {
 
 # downloads firmware
 download_firmware() {
-  install -d -o 0 -g 0 -m 0755 "${local_sets_dir}/firmware"
-  fw_update -p "${local_sets_dir}/firmware" -F
+  _firmware_cache="${local_sets_dir}/$(kern_version)/firmware"
+  install -d -o 0 -g 0 -m 0755 "$_firmware_cache"
+  fw_update -p "$_firmware_cache" -F
 }
 
 # installs firmware
 install_firmware() {
-  fw_update -p "${local_sets_dir}/firmware"
+  fw_update -p "${local_sets_dir}/$(kern_version)/firmware"
+}
+
+# downloads packages
+download_packages() {
+  _packages_cache="${local_sets_dir}/$(kern_version)/packages/$(kern_arch)"
+  _snapshot=""
+  if is_snapshot || is_post_beta_pre_release; then _snapshot="-Dsnap"; fi
+
+  if $verbose; then echo "Downloading package updates..."; fi
+  install -d -o 0 -g 0 -m 0755 "$_packages_cache"
+  PKG_CACHE="$_packages_cache" pkg_add -Vnxu "$_snapshot"
+}
+
+# installs packages
+install_packages() {
+  _packages_cache="${local_sets_dir}/$(kern_version)/packages/$(kern_arch)"
+  _snapshot=""
+  if is_snapshot || is_post_beta_pre_release; then _snapshot="-Dsnap"; fi
+
+  if $verbose; then echo "Installing package updates..."; fi
+  PKG_PATH="${_packages_cache}:installpath" pkg_add -Vxu "$_snapshot"
 }
 
 # installs system patches
@@ -278,19 +304,14 @@ case "$flag" in
       syspatch -c
     fi
     if $verbose; then echo "Checking for updated packages..."; fi
-    pkg_add -sxu
+    pkg_add -Vsxu
     check_for_sysupgrade
     ;;
   d)
     # download, but don't install pending updates
     if $verbose; then echo "Downloading firmware updates..."; fi
     download_firmware
-    if $verbose; then echo "Downloading package updates..."; fi
-    if is_snapshot || is_post_beta_pre_release; then
-      pkg_add -nxu -Dsnap
-    else
-      pkg_add -nxu
-    fi
+    download_packages
     if check_for_sysupgrade; then
       if is_snapshot || is_post_beta_pre_release; then
         sysupgrade -ns
@@ -303,13 +324,7 @@ case "$flag" in
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     download_firmware && install_firmware
-    install_patches
-    if $verbose; then echo "Installing package updates..."; fi
-    if is_snapshot || is_post_beta_pre_release; then
-      pkg_add -xu -Dsnap
-    else
-      pkg_add -xu
-    fi
+    download_packages && install_packages
     if $verbose; then echo "Uninstalling unused package dependencies..."; fi
     pkg_delete -xa
     if which checkrestart > /dev/null 2>&1 ; then
