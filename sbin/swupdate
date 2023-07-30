@@ -39,7 +39,7 @@
 # v0.7.1 - 2023-07-04 - Morgan Aldridge
 #                       Fixed bug in dermining whether a file had been modified
 #                       during syspatch(8) execution. Code quality improvements.
-# v0.8   - 2023-07-09 - Morgan Aldridge
+# v0.8   - 2023-07-30 - Morgan Aldridge
 #                       Added option for specifying base directory for local
 #                       sets. Firmware and packages are downloaded to and
 #                       installed from local sets.
@@ -324,6 +324,7 @@ case "$flag" in
     # install pending updates   
     if $verbose; then echo "Installing firmware updates..."; fi
     download_firmware && install_firmware
+    install_patches
     download_packages && install_packages
     if $verbose; then echo "Uninstalling unused package dependencies..."; fi
     pkg_delete -xa
