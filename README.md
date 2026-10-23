@@ -7,6 +7,7 @@ by Morgan Aldridge <morgant@makkintosshu.com>
 
 A simple utility to roll the various software update related utilities in [OpenBSD](https://www.openbsd.org/) into a single command, a la macOS's (nee Mac OS X's) [`softwareupdate`](https://ss64.com/osx/softwareupdate.html), including:
 
+* [dbupdate(8)](https://man.openbsd.org/dbupdate)
 * [fw_update(8)](https://man.openbsd.org/fw_update)
 * [syspatch(8)](https://man.openbsd.org/syspatch)
 * [pkg_add(1)](https://man.openbsd.org/pkg_add)
@@ -33,7 +34,7 @@ with OpenBSD's manual pages for the various software updare scripts.)
 
 ## FEATURES
 
-* List, download, or install pending updates for firmware, system patches, packages, and major releases
+* List, download, or install pending updates for system databases, firmware, system patches, packages, and new major releases
 * Works on -release, -stable, or -current
 * Automatically uses snapshots when running a post-beta/pre-release kernel
 * Upon installation:
