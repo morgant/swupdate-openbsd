@@ -5,7 +5,10 @@ by Morgan Aldridge <morgant@makkintosshu.com>
 
 ## OVERVIEW
 
-A simple utility to roll the various software update related utilities in [OpenBSD](https://www.openbsd.org/) into a single command, a la macOS's (nee Mac OS X's) [`softwareupdate`](https://ss64.com/osx/softwareupdate.html), including:
+A simple utility to roll the various software update related utilities in
+[OpenBSD](https://www.openbsd.org/) into a single command, a la macOS's (nee
+Mac OS X's) [`softwareupdate`](https://ss64.com/osx/softwareupdate.html),
+including:
 
 * [dbupdate(8)](https://man.openbsd.org/dbupdate)
 * [fw_update(8)](https://man.openbsd.org/fw_update)
@@ -34,23 +37,29 @@ with OpenBSD's manual pages for the various software updare scripts.)
 
 ## FEATURES
 
-* List, download, or install pending updates for system databases, firmware, system patches, packages, and new major releases
+* List, download, or install pending updates for system databases, firmware,
+    system patches, packages, and new major releases
 * Works on -release, -stable, or -current
 * Automatically uses snapshots when running a post-beta/pre-release kernel
 * Upon installation:
   * Installs additional system patches when `syspatch` has updated itself
   * Uninstalls any unused package dependencies
-  * Checks for any running processes that might have had their binaries updated, if `checkrestart` is installed
+  * Checks for any running processes which might have had their binaries
+    updated (if `checkrestart` is installed)
   * Prompts to reboot if kernel was updated by `syspatch`
-  * Prompts to install next major release upgrade via `sysupgrade`, if available
+  * Prompts to install next major release upgrade via `sysupgrade`, if
+    available
 
 ## SECURITY PRECAUTIONS
 
 * Prevents `PATH` poisoning/hijacking
-* Drops root user privileges before fetching data via [ftp(1)](https://man.openbsd.org/ftp) (syspatch(8) and sysupgrade(8) also do the same)
+* Drops root user privileges before fetching data via [ftp(1)](https://man.openbsd.org/ftp)
+    (syspatch(8) and sysupgrade(8) also do the same)
 * Deliberate order of operations, especially:
-    * dbupdate(8) is **always** run first, if available, to ensure that system certificate authority databases and such are up-to-date
-    * fw_update(8) and syspatch(8) updates are prioritized above package updates
+    * dbupdate(8) is **always** run first, if available, to ensure that system
+        certificate authority databases and such are up-to-date
+    * fw_update(8) and syspatch(8) updates are prioritized above package
+        updates
 
 ## USAGE
 
@@ -62,7 +71,8 @@ To download, but not install, pending software updates:
 
     doas swupdate -d
 
-To install all pending software updates, including system databases, patches, and firmware:
+To install all pending software updates, including system databases, patches,
+and firmware:
 
     doas swupdate -i
 
