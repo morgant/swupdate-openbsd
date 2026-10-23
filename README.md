@@ -44,20 +44,28 @@ with OpenBSD's manual pages for the various software updare scripts.)
   * Prompts to reboot if kernel was updated by `syspatch`
   * Prompts to install next major release upgrade via `sysupgrade`, if available
 
+## SECURITY PRECAUTIONS
+
+* Prevents `PATH` poisoning/hijacking
+* Drops root user privileges before fetching data via [ftp(1)](https://man.openbsd.org/ftp) (syspatch(8) and sysupgrade(8) also do the same)
+* Deliberate order of operations, especially:
+    * dbupdate(8) is **always** run first, if available, to ensure that system certificate authority databases and such are up-to-date
+    * fw_update(8) and syspatch(8) updates are prioritized above package updates
+
 ## USAGE
 
-To check for software updates:
+To check for and list pending software updates:
 
     doas swupdate -l
 
-To download, but not install software updates:
+To download, but not install, pending software updates:
 
     doas swupdate -d
 
-To install all software updates, including system patches and firmware:
+To install all pending software updates, including system databases, patches, and firmware:
 
     doas swupdate -i
 
 ## LICENSE
 
-Released under the [MIT license](LICENSE).
+Released under the [MIT License](LICENSE).

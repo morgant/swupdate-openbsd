@@ -43,6 +43,8 @@
 # v0.7.2 - 2026-10-22 - Morgan Aldridge
 #                       Checks for or installs system database updates via new
 #                       dbupdate(8), if available, before any other updates.
+#                       Improvements to prevent PATH environment variable
+#                       poisoning/hijacking.
 #
 # LICENSE:
 #
@@ -69,6 +71,9 @@
 tool="$(basename "$0")"
 verbose=false
 reboot=false
+
+# prevent poisoning/hijacking via PATH
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
 usage() {
   echo "Usage: ${tool} [-v] [-l | -d | -i]"
@@ -182,6 +187,13 @@ install_patches() {
   [ $_result -eq 0 ] && modified_since /bsd "$_start" && reboot=true
 }
 
+# wrapper for which(1) which includes the default localbase paths (e.g.
+# /usr/local/bin and /usr/local/sbin) since we lock down PATH to preventi
+# poisoning/hijacking
+which_localbase() {
+  PATH=$PATH:/usr/local/bin:/usr/local/sbin which "${@}"
+}
+
 # exits with status 0 if dbupdate(8) is available (introduced by syspatch 040
 # for OpenBSD 7.9 and syspatch 005 for OpenBSD 8.0, respectively), otherwise
 # exits with status 1
@@ -189,11 +201,24 @@ has_dbupdate() {
   which dbupdate >/dev/null 2>&1
 }
 
+# exits with status 0 if sysupgrade(8) is available (introduced in OpenBSD
+# 6.6), otherwise exits with status 1
+has_sysupgrade() {
+  which sysupgrade >/dev/null 2>&1
+}
+
+# exits with status 0 if checkrestart(8) is available (packaged, so via
+# pkg_add(1)), otherwise exits with status 1
+has_checkrestart() {
+  # checkrestart(8) is an optional package, not in the base OS
+  which_localbase checkrestart >/dev/null 2>&1
+}
+
 # exits with status 0 if sysupgrade and a newer release are available, otherwise
 # exits with status 1
 check_for_sysupgrade() {
   _version="$(kern_version)"
-  if which sysupgrade >/dev/null 2>&1; then
+  if has_sysupgrade; then
     if is_snapshot || is_post_beta_pre_release; then
       if $verbose; then echo "Skipping checking for system upgrades (running snapshot)."; fi
       return 1
@@ -316,9 +341,9 @@ case "$flag" in
     fi
     if $verbose; then echo "Uninstalling unused package dependencies..."; fi
     pkg_delete -xa
-    if which checkrestart > /dev/null 2>&1 ; then
+    if has_checkrestart ; then
       if $verbose; then echo "Checking for processes needing a restart..."; fi
-      checkrestart
+      $(which_localbase checkrestart)
     fi
     _now=""
     if $reboot && read -r _now?'A reboot is necessary. Reboot now (y/n)? ' ; then
