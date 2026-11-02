@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_n/a_
+
+
+## [0.8.0] - 2026-11-02
+
 ### Added
 
 * `swupdate`:
@@ -26,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         expanded to include the package localbase paths (e.g. `/usr/local/bin`
         and `/usr/local/sbin`) when working with optional binaries installed
         via pkg_add(1), for example: checkrestart(8).
+    * Internal variable `tool` renamed to `_self`
 * `README.md`:
     * Updated to note new support for dbupdate(8)
     * Added new 'Security Precautions' section noting dbupdate(8), `PATH`
@@ -147,7 +153,8 @@ if you have this version installed!_
 
 * Initial release
 
-[unreleased]: https://github.com/morgant/swupdate-openbsd/compare/0.7.1...master
+[unreleased]: https://github.com/morgant/swupdate-openbsd/compare/0.8...master
+[0.8.0]: https://github.com/morgant/swupdate-openbsd/compare/0.7.1...0.8
 [0.7.1]: https://github.com/morgant/swupdate-openbsd/compare/0.7...0.7.1
 [0.7.0]: https://github.com/morgant/swupdate-openbsd/compare/0.6.1...0.7
 [0.6.1]: https://github.com/morgant/swupdate-openbsd/compare/0.6...0.6.1

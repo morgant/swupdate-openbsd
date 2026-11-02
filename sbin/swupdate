@@ -40,7 +40,7 @@
 #                       Fixed bug in dermining whether a file had been
 #                       modified during syspatch(8) execution. Code quality
 #                       improvements.
-# v0.7.2 - 2026-10-22 - Morgan Aldridge
+# v0.8   - 2026-11-02 - Morgan Aldridge
 #                       Checks for or installs system database updates via new
 #                       dbupdate(8), if available, before any other updates.
 #                       Improvements to prevent PATH environment variable
@@ -48,7 +48,7 @@
 #
 # LICENSE:
 #
-# Copyright (c) 2019-2026 Morgan Aldridge
+# Copyright (c) 2019-2026 Morgan T. Aldridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -68,7 +68,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-tool="$(basename "$0")"
+_self="$(basename "$0")"
 verbose=false
 reboot=false
 
@@ -76,7 +76,7 @@ reboot=false
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
 usage() {
-  echo "Usage: ${tool} [-v] [-l | -d | -i]"
+  echo "Usage: ${_self} [-v] [-l | -d | -i]"
 }
 
 # drop root privileges before executing ftp(1)
@@ -279,7 +279,7 @@ shift $((OPTIND - 1))
 
 # require root
 if [ "$(id -u)" -ne 0 ]; then
-  echo "${tool}: need root privileges"
+  echo "${_self}: need root privileges"
   exit 1
 fi
 
