@@ -16,7 +16,7 @@ including:
 * [pkg_add(1)](https://man.openbsd.org/pkg_add)
 * [pkg_delete(1)](https://man.openbsd.org/pkg_delete)
 * [sysupgrade(8)](https://man.openbsd.org/sysupgrade)
-* [checkrestart](https://github.com/semarie/checkrestart) (if installed)
+* [checkrestart(8)](https://github.com/semarie/checkrestart) (if installed)
 
 ## Update-verse
 
@@ -42,12 +42,12 @@ with OpenBSD's manual pages for the various software updare scripts.)
 * Works on -release, -stable, or -current
 * Automatically uses snapshots when running a post-beta/pre-release kernel
 * Upon installation:
-  * Installs additional system patches when `syspatch` has updated itself
-  * Uninstalls any unused package dependencies
+  * Installs additional system patches when syspatch(8) has updated itself
+  * Uninstalls any unused package dependencies via pkg_delete(1)
   * Checks for any running processes which might have had their binaries
-    updated (if `checkrestart` is installed)
-  * Prompts to reboot if kernel was updated by `syspatch`
-  * Prompts to install next major release upgrade via `sysupgrade`, if
+    updated (if checkrestart(8) is installed)
+  * Prompts to reboot if kernel was updated by syspatch(8)
+  * Prompts to install next major release upgrade via sysupgrade(8), if
     available
 
 ## SECURITY PRECAUTIONS
@@ -76,6 +76,10 @@ and firmware:
 
     doas swupdate -i
 
+## CHANGE LOG
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
 ## LICENSE
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT license](LICENSE).
