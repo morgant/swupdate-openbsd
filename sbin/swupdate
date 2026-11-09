@@ -24,55 +24,64 @@
 #                       Fix error from fw_update(8) when listing pending
 #                       updates.
 # v0.6   - 2023-03-31 - Morgan Aldridge
-#                       Round elapsed minutes since syspatch(8) execution began
-#                       up to nearest minute. Only re-execute syspatch(8) if it
-#                       updated itself during its execution time. Detects
-#                       when kernel is in post-beta & pre-release window and
-#                       appropriately uses snapshots.
+#                       Round elapsed minutes since syspatch(8) execution
+#                       began up to nearest minute. Only re-execute
+#                       syspatch(8) if it updated itself during its execution
+#                       time. Detects when kernel is in post-beta & pre-
+#                       release window and appropriately uses snapshots.
 # v0.6.1 - 2023-03-31 - Morgan Aldridge
 #                       Drop privileges before executing ftp(1). Verbose
 #                       output now notes when syspatch(8) is skipped due to
 #                       running a snapshot.
 # v0.7   - 2023-07-02 - Morgan Aldridge
-#                       Detect when a newer release is available to install via
-#                       sysupgrade(8) and prompt to install.
+#                       Detect when a newer release is available to install
+#                       via sysupgrade(8) and prompt to install.
 # v0.7.1 - 2023-07-04 - Morgan Aldridge
-#                       Fixed bug in dermining whether a file had been modified
-#                       during syspatch(8) execution. Code quality improvements.
-# v0.8   - 2023-07-06 - Morgan Aldridge
+#                       Fixed bug in dermining whether a file had been
+#                       modified during syspatch(8) execution. Code quality
+#                       improvements.
+# v0.8   - 2026-11-02 - Morgan Aldridge
+#                       Checks for or installs system database updates via new
+#                       dbupdate(8), if available, before any other updates.
+#                       Improvements to prevent PATH environment variable
+#                       poisoning/hijacking.
+# v0.?.?  - 2023-07-06 - Morgan Aldridge
 #                       Added option for specifying base directory for local
 #                       sets. Firmware updates are downloaded to local sets
 #                       and installed from local sets.
 #
 # LICENSE:
 #
-# Copyright (c) 2019-2023 Morgan Aldridge
+# Copyright (c) 2019-2026 Morgan T. Aldridge
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 
-tool="$(basename "$0")"
+_self="$(basename "$0")"
 verbose=false
 reboot=false
 local_sets_dir="/home/_swupdate"
 
+# prevent poisoning/hijacking via PATH
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
 usage() {
-  echo "Usage: ${tool} [-v] [-b path] [-l | -d | -i]"
+  echo "Usage: ${_self} [-v] [-b path] [-l | -d | -i]"
 }
 
 # drop root privileges before executing ftp(1)
@@ -194,11 +203,38 @@ install_patches() {
   [ $_result -eq 0 ] && modified_since /bsd "$_start" && reboot=true
 }
 
+# wrapper for which(1) which includes the default localbase paths (e.g.
+# /usr/local/bin and /usr/local/sbin) since we lock down PATH to preventi
+# poisoning/hijacking
+which_localbase() {
+  PATH=$PATH:/usr/local/bin:/usr/local/sbin which "${@}"
+}
+
+# exits with status 0 if dbupdate(8) is available (introduced by syspatch 040
+# for OpenBSD 7.9 and syspatch 005 for OpenBSD 8.0, respectively), otherwise
+# exits with status 1
+has_dbupdate() {
+  which dbupdate >/dev/null 2>&1
+}
+
+# exits with status 0 if sysupgrade(8) is available (introduced in OpenBSD
+# 6.6), otherwise exits with status 1
+has_sysupgrade() {
+  which sysupgrade >/dev/null 2>&1
+}
+
+# exits with status 0 if checkrestart(8) is available (packaged, so via
+# pkg_add(1)), otherwise exits with status 1
+has_checkrestart() {
+  # checkrestart(8) is an optional package, not in the base OS
+  which_localbase checkrestart >/dev/null 2>&1
+}
+
 # exits with status 0 if sysupgrade and a newer release are available, otherwise
 # exits with status 1
 check_for_sysupgrade() {
   _version="$(kern_version)"
-  if which sysupgrade >/dev/null 2>&1; then
+  if has_sysupgrade; then
     if is_snapshot || is_post_beta_pre_release; then
       if $verbose; then echo "Skipping checking for system upgrades (running snapshot)."; fi
       return 1
@@ -262,13 +298,17 @@ shift $((OPTIND - 1))
 
 # require root
 if [ "$(id -u)" -ne 0 ]; then
-  echo "${tool}: need root privileges"
+  echo "${_self}: need root privileges"
   exit 1
 fi
 
 case "$flag" in
   l)
     # list pending updates
+    if has_dbupdate ; then
+      if $verbose; then echo "Checking for system database updates..."; fi
+      dbupdate -n
+    fi
     if $verbose; then echo "Checking for firmware updates..."; fi
     fw_update -n
     if is_snapshot || is_post_beta_pre_release; then
@@ -283,6 +323,10 @@ case "$flag" in
     ;;
   d)
     # download, but don't install pending updates
+    if has_dbupdate ; then
+      if $verbose; then echo "Downloading system database updates..."; fi
+      dbupdate -n
+    fi
     if $verbose; then echo "Downloading firmware updates..."; fi
     download_firmware
     if $verbose; then echo "Downloading package updates..."; fi
@@ -301,6 +345,10 @@ case "$flag" in
     ;;
   i)
     # install pending updates   
+    if has_dbupdate ; then
+      if $verbose; then echo "Installing system database updates..."; fi
+      dbupdate
+    fi
     if $verbose; then echo "Installing firmware updates..."; fi
     download_firmware && install_firmware
     install_patches
@@ -312,9 +360,9 @@ case "$flag" in
     fi
     if $verbose; then echo "Uninstalling unused package dependencies..."; fi
     pkg_delete -xa
-    if which checkrestart > /dev/null 2>&1 ; then
+    if has_checkrestart ; then
       if $verbose; then echo "Checking for processes needing a restart..."; fi
-      checkrestart
+      $(which_localbase checkrestart)
     fi
     _now=""
     if $reboot && read -r _now?'A reboot is necessary. Reboot now (y/n)? ' ; then
